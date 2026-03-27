@@ -1,0 +1,493 @@
+import datetime
+from typing import Optional, List, Dict, Any
+
+# ---------- Basic Classes ----------
+class Car:
+    def __init__(self, car_id: int, model: str, price_per_day: float, plate: str):
+        self.car_id = car_id          # key for BST
+        self.model = model
+        self.price_per_day = price_per_day
+        self.plate = plate            # key for hash table
+        self.available = True
+
+    def __repr__(self):
+        return f"Car({self.car_id}, {self.model}, {self.price_per_day}, {self.plate}, {'Available' if self.available else 'Rented'})"
+
+class Customer:
+    def __init__(self, customer_id: int, name: str, contact: str):
+        self.customer_id = customer_id  # key for hash table
+        self.name = name
+        self.contact = contact
+
+    def __repr__(self):
+        return f"Customer({self.customer_id}, {self.name})"
+
+class Rental:
+    def __init__(self, rental_id: int, car: Car, customer: Customer, rent_date: datetime.date):
+        self.rental_id = rental_id
+        self.car = car
+        self.customer = customer
+        self.rent_date = rent_date
+
+        self.return_date = None
+
+    def __repr__(self):
+        return f"Rental({self.rental_id}, Car {self.car.car_id}, Customer {self.customer.customer_id}, Rented: {self.rent_date})"
+
+#linked lists and binary tree
+"""student 1"""
+
+class ListNode:
+    def __init__(self, rental: Rental):
+        self.rental = rental
+        self.next = None
+
+class RentalLinkedList:
+    def __init__(self):
+        self.head = None
+        self.size = 0
+
+    def add_rental(self, rental: Rental) -> None:
+        """Add a rental at the front."""
+        new_node = ListNode(rental)
+        new_node.next = self.head
+        self.head = new_node
+        self.size += 1
+
+    def remove_rental(self, rental_id: int) -> Optional[Rental]:
+        """Remove rental by ID and return it."""
+        if not self.head:
+            return None
+        # If head is the target
+        if self.head.rental.rental_id == rental_id:
+            removed = self.head.rental
+            self.head = self.head.next
+            self.size -= 1
+            return removed
+        # Search in rest
+        current = self.head
+        while current.next:
+            if current.next.rental.rental_id == rental_id:
+                removed = current.next.rental
+                current.next = current.next.next
+                self.size -= 1
+                return removed
+            current = current.next
+        return None
+
+    def display(self) -> None:
+        """Traverse and print all rentals."""
+        current = self.head
+        if not current:
+            print("No active rentals.")
+            return
+        while current:
+            print(current.rental)
+            current = current.next
+
+#Binary search tree for cars
+class BSTNode:
+    def __init__(self, car: Car):
+        self.car = car
+        self.left = None
+        self.right = None
+
+class CarBST:
+    def __init__(self):
+        self.root = None
+
+    def insert(self, car: Car) -> None:
+        """Insert car into BST by car_id."""
+        self.root = self._insert_rec(self.root, car)
+
+    def _insert_rec(self, node: Optional[BSTNode], car: Car) -> BSTNode:
+        if node is None:
+            return BSTNode(car)
+        if car.car_id < node.car.car_id:
+            node.left = self._insert_rec(node.left, car)
+        elif car.car_id > node.car.car_id:
+            node.right = self._insert_rec(node.right, car)
+        else:
+            # Car ID already exists – we can update or ignore; here we ignore
+            pass
+        return node
+
+    def search(self, car_id: int) -> Optional[Car]:
+        """Search car by ID."""
+        node = self._search_rec(self.root, car_id)
+        return node.car if node else None
+
+    def _search_rec(self, node: Optional[BSTNode], car_id: int) -> Optional[BSTNode]:
+        if node is None or node.car.car_id == car_id:
+            return node
+        if car_id < node.car.car_id:
+            return self._search_rec(node.left, car_id)
+        else:
+            return self._search_rec(node.right, car_id)
+
+    def delete(self, car_id: int) -> bool:
+        """Delete car by ID. Return True if deleted."""
+        self.root, deleted = self._delete_rec(self.root, car_id)
+        return deleted
+
+    def _delete_rec(self, node: Optional[BSTNode], car_id: int):
+        if node is None:
+            return None, False
+        if car_id < node.car.car_id:
+            node.left, deleted = self._delete_rec(node.left, car_id)
+            return node, deleted
+        elif car_id > node.car.car_id:
+            node.right, deleted = self._delete_rec(node.right, car_id)
+            return node, deleted
+        else:
+            # Node to delete
+            if node.left is None:
+                return node.right, True
+            if node.right is None:
+                return node.left, True
+            # Two children: find inorder successor
+            successor = self._min_value_node(node.right)
+            node.car = successor.car
+            node.right, _ = self._delete_rec(node.right, successor.car.car_id)
+            return node, True
+
+    def _min_value_node(self, node: BSTNode) -> BSTNode:
+        current = node
+        while current.left:
+            current = current.left
+        return current
+
+    # Recursive traversals 
+    """Student 2"""
+    def inorder(self) -> List[Car]:
+        result = []
+        self._inorder_rec(self.root, result)
+        return result
+
+    def _inorder_rec(self, node: Optional[BSTNode], result: List[Car]):
+        if node:
+            self._inorder_rec(node.left, result)
+            result.append(node.car)
+            self._inorder_rec(node.right, result)
+
+    def preorder(self) -> List[Car]:
+        result = []
+        self._preorder_rec(self.root, result)
+        return result
+
+    def _preorder_rec(self, node: Optional[BSTNode], result: List[Car]):
+        if node:
+            result.append(node.car)
+            self._preorder_rec(node.left, result)
+            self._preorder_rec(node.right, result)
+
+    def postorder(self) -> List[Car]:
+        result = []
+        self._postorder_rec(self.root, result)
+        return result
+
+    def _postorder_rec(self, node: Optional[BSTNode], result: List[Car]):
+        if node:
+            self._postorder_rec(node.left, result)
+            self._postorder_rec(node.right, result)
+            result.append(node.car)
+
+    def count_cars(self) -> int:
+        """Recursively count total cars (Student 2)."""
+        return self._count_rec(self.root)
+
+    def _count_rec(self, node: Optional[BSTNode]) -> int:
+        if node is None:
+            return 0
+        return 1 + self._count_rec(node.left) + self._count_rec(node.right)
+
+    def count_available(self) -> int:
+        """Count available cars recursively."""
+        return self._count_available_rec(self.root)
+
+    def _count_available_rec(self, node: Optional[BSTNode]) -> int:
+        if node is None:
+            return 0
+        count = 1 if node.car.available else 0
+        return count + self._count_available_rec(node.left) + self._count_available_rec(node.right)
+
+#sorting and searching
+"""student 3"""
+# Sorting functions (Merge Sort example)
+def merge_sort_cars(cars: List[Car], key_func) -> List[Car]:
+    """Sort list of cars using merge sort based on key_func."""
+    if len(cars) <= 1:
+        return cars
+    mid = len(cars) // 2
+    left = merge_sort_cars(cars[:mid], key_func)
+    right = merge_sort_cars(cars[mid:], key_func)
+    return _merge(left, right, key_func)
+
+def _merge(left: List[Car], right: List[Car], key_func):
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if key_func(left[i]) <= key_func(right[j]):
+            result.append(left[i])
+            i += 1
+        else:
+            result.append(right[j])
+            j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result
+
+# Key functions for sorting
+def by_model(car: Car) -> str:
+    return car.model
+
+def by_price(car: Car) -> float:
+    return car.price_per_day
+
+def by_availability(car: Car) -> tuple:
+    # False (rented) comes before True (available) if we want available first? We'll decide later.
+    # I have decided guys, after a long train of though and alot of thinking, available cars first.
+    return (not car.available, car.model)  # available True => (False, ...) so they come first
+
+# Binary search on sorted list
+def binary_search_cars(sorted_cars: List[Car], key_func, target) -> Optional[List[Car]]:
+    """
+    Search for all cars that match target under key_func.
+    Assumes sorted_cars is sorted by key_func.
+    Returns list of matches.
+    """
+    # First find the leftmost index where key >= target
+    low, high = 0, len(sorted_cars)
+    while low < high:
+        mid = (low + high) // 2
+        if key_func(sorted_cars[mid]) < target:
+            low = mid + 1
+        else:
+            high = mid
+    left = low
+    # Then find rightmost index where key <= target
+    low, high = 0, len(sorted_cars)
+    while low < high:
+        mid = (low + high) // 2
+        if key_func(sorted_cars[mid]) <= target:
+            low = mid + 1
+        else:
+            high = mid
+    right = low
+    return sorted_cars[left:right] if left < right else []
+
+    #hashing system intergration 
+    """student 4"""
+
+    class HashTable:
+    def __init__(self):
+        self.table = {}
+
+    def insert(self, key, value):
+        self.table[key] = value
+
+    def get(self, key):
+        return self.table.get(key)
+
+    def delete(self, key):
+        if key in self.table:
+            del self.table[key]
+            return True
+        return False
+
+    def contains(self, key):
+        return key in self.table
+
+    #Part of the system that olds all the components and a menu
+
+    
+    class CarRentalSystem:
+    def __init__(self):
+    
+        self.active_rentals = RentalLinkedList()
+        self.car_tree = CarBST()
+        
+        self.plate_hash = HashTable()      # plate -> Car
+        self.customer_hash = HashTable()   # customer_id -> Customer
+        
+        self._all_cars_list = []           # cached list for sorting (updated when cars change)
+        self._last_car_list_update = 0
+
+    def add_car(self, car: Car):
+        self.car_tree.insert(car)
+        self.plate_hash.insert(car.plate, car)
+        self._invalidate_car_list()
+
+    def get_car_by_id(self, car_id: int) -> Optional[Car]:
+        return self.car_tree.search(car_id)
+
+    def get_car_by_plate(self, plate: str) -> Optional[Car]:
+        return self.plate_hash.get(plate)
+
+    def add_customer(self, customer: Customer):
+        self.customer_hash.insert(customer.customer_id, customer)
+
+    def get_customer(self, customer_id: int) -> Optional[Customer]:
+        return self.customer_hash.get(customer_id)
+
+    def rent_car(self, car_id: int, customer_id: int, rent_date: datetime.date) -> bool:
+        car = self.get_car_by_id(car_id)
+        if not car:
+            print("Car not found.")
+            return False
+        if not car.available:
+            print("Car is already rented.")
+            return False
+        customer = self.get_customer(customer_id)
+        if not customer:
+            print("Customer not found.")
+            return False
+        # Create rental record
+        rental_id = self._generate_rental_id()
+        rental = Rental(rental_id, car, customer, rent_date)
+        self.active_rentals.add_rental(rental)
+        car.available = False
+        print(f"Car {car_id} rented to {customer.name} (ID: {customer_id}).")
+        return True
+
+    def return_car(self, rental_id: int, return_date: datetime.date) -> bool:
+        rental = self.active_rentals.remove_rental(rental_id)
+        if not rental:
+            print("Rental record not found.")
+            return False
+        rental.return_date = return_date
+        rental.car.available = True
+        
+        # Optionally store in a history list 
+        print(f"Car {rental.car.car_id} returned.")
+        return True
+
+    def display_active_rentals(self):
+        self.active_rentals.display()
+
+    def display_all_cars(self):
+        cars = self.car_tree.inorder()
+        if not cars:
+            print("No cars in inventory.")
+        else:
+            for car in cars:
+                print(car)
+
+    # Sorting and searching (Student 3)
+    def get_sorted_cars(self, key: str) -> List[Car]:
+        cars = self._get_all_cars_list()
+        if key == 'model':
+            return merge_sort_cars(cars, by_model)
+        elif key == 'price':
+            return merge_sort_cars(cars, by_price)
+        elif key == 'availability':
+            return merge_sort_cars(cars, by_availability)
+        else:
+            return cars
+
+    def search_cars_by_model(self, model: str) -> List[Car]:
+        sorted_cars = self.get_sorted_cars('model')
+        return binary_search_cars(sorted_cars, by_model, model)
+
+    def _get_all_cars_list(self) -> List[Car]:
+      
+        return self.car_tree.inorder()
+
+    def _invalidate_car_list(self):
+        # For caching, but we won't implement caching for simplicity
+        pass
+
+    def _generate_rental_id(self):
+      
+        return self.active_rentals.size + 1
+
+    #Dems Babygirl
+
+    def main():
+    system = CarRentalSystem()
+
+    # Populate with sample data
+    car1 = Car(1, "Toyota Camry", 50.0, "ABC123")
+    car2 = Car(2, "Honda Accord", 55.0, "XYZ789")
+    car3 = Car(3, "Ford Mustang", 80.0, "MUS456")
+    system.add_car(car1)
+    system.add_car(car2)
+    system.add_car(car3)
+
+    cust1 = Customer(101, "Alice", "alice@example.com")
+    cust2 = Customer(102, "Bob", "bob@example.com")
+    system.add_customer(cust1)
+    system.add_customer(cust2)
+
+    # Menu loop
+    while True:
+        print("\n=== Car Rental System ===")
+        print("1. Display all cars")
+        print("2. Display active rentals")
+        print("3. Rent a car")
+        print("4. Return a car")
+        print("5. Show sorted cars (by model)")
+        print("6. Show sorted cars (by price)")
+        print("7. Show sorted cars (by availability)")
+        print("8. Search cars by model")
+        print("9. Show car tree traversals (Student 2)")
+        print("10. Count total cars (recursive)")
+        print("11. Count available cars (recursive)")
+        print("0. Exit")
+        choice = input("Enter choice: ").strip()
+
+        if choice == '1':
+            system.display_all_cars()
+        elif choice == '2':
+            system.display_active_rentals()
+        elif choice == '3':
+            try:
+                car_id = int(input("Car ID: "))
+                cust_id = int(input("Customer ID: "))
+                rent_date = datetime.date.today()
+                system.rent_car(car_id, cust_id, rent_date)
+            except ValueError:
+                print("Invalid input.")
+        elif choice == '4':
+            try:
+                rental_id = int(input("Rental ID: "))
+                return_date = datetime.date.today()
+                system.return_car(rental_id, return_date)
+            except ValueError:
+                print("Invalid input.")
+        elif choice == '5':
+            sorted_cars = system.get_sorted_cars('model')
+            for car in sorted_cars:
+                print(car)
+        elif choice == '6':
+            sorted_cars = system.get_sorted_cars('price')
+            for car in sorted_cars:
+                print(car)
+        elif choice == '7':
+            sorted_cars = system.get_sorted_cars('availability')
+            for car in sorted_cars:
+                print(car)
+        elif choice == '8':
+            model = input("Model to search: ")
+            results = system.search_cars_by_model(model)
+            if results:
+                print("Found cars:")
+                for car in results:
+                    print(car)
+            else:
+                print("No cars found with that model.")
+        elif choice == '9':
+            print("Inorder:", [c.car_id for c in system.car_tree.inorder()])
+            print("Preorder:", [c.car_id for c in system.car_tree.preorder()])
+            print("Postorder:", [c.car_id for c in system.car_tree.postorder()])
+        elif choice == '10':
+            print(f"Total cars in inventory: {system.car_tree.count_cars()}")
+        elif choice == '11':
+            print(f"Available cars: {system.car_tree.count_available()}")
+        elif choice == '0':
+            break
+        else:
+            print("Invalid choice.")
+
+if __name__ == "__main__":
+    main()
