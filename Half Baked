@@ -28,7 +28,6 @@ class Rental:
         self.car = car
         self.customer = customer
         self.rent_date = rent_date
-
         self.return_date = None
 
     def __repr__(self):
@@ -276,10 +275,10 @@ def binary_search_cars(sorted_cars: List[Car], key_func, target) -> Optional[Lis
     right = low
     return sorted_cars[left:right] if left < right else []
 
-    #hashing system intergration 
-    """student 4"""
+#hashing system integration 
+"""student 4"""
 
-    class HashTable:
+class HashTable:
     def __init__(self):
         self.table = {}
 
@@ -298,12 +297,10 @@ def binary_search_cars(sorted_cars: List[Car], key_func, target) -> Optional[Lis
     def contains(self, key):
         return key in self.table
 
-    #Part of the system that olds all the components and a menu
+#Part of the system that holds all the components and a menu
 
-    
-    class CarRentalSystem:
+class CarRentalSystem:
     def __init__(self):
-    
         self.active_rentals = RentalLinkedList()
         self.car_tree = CarBST()
         
@@ -312,6 +309,7 @@ def binary_search_cars(sorted_cars: List[Car], key_func, target) -> Optional[Lis
         
         self._all_cars_list = []           # cached list for sorting (updated when cars change)
         self._last_car_list_update = 0
+        self._next_rental_id = 1
 
     def add_car(self, car: Car):
         self.car_tree.insert(car)
@@ -390,7 +388,6 @@ def binary_search_cars(sorted_cars: List[Car], key_func, target) -> Optional[Lis
         return binary_search_cars(sorted_cars, by_model, model)
 
     def _get_all_cars_list(self) -> List[Car]:
-      
         return self.car_tree.inorder()
 
     def _invalidate_car_list(self):
@@ -398,12 +395,12 @@ def binary_search_cars(sorted_cars: List[Car], key_func, target) -> Optional[Lis
         pass
 
     def _generate_rental_id(self):
-      
-        return self.active_rentals.size + 1
+        rental_id = self._next_rental_id
+        self._next_rental_id += 1
+        return rental_id
 
-    #Dems Babygirl
-
-    def main():
+# Main function
+def main():
     system = CarRentalSystem()
 
     # Populate with sample data
